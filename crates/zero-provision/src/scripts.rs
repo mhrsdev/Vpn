@@ -138,7 +138,7 @@ fi
 /// Only the public half is printed; the private half never leaves the
 /// server. Prints `public_key=`. Exit 60 when the tool fails.
 pub const WG_KEYGEN: &str = r#"
-out=$("$BIN" tools wg 2>/dev/null) || { echo "the key tool failed" >&2; exit 60; }
+out=$("$BIN" wg 2>/dev/null || "$BIN" tools wg 2>/dev/null) || { echo "the key tool failed" >&2; exit 60; }
 priv=$(printf '%s\n' "$out" | sed -n 's/^PrivateKey: //p')
 pub=$(printf '%s\n' "$out" | sed -n 's/^Password (PublicKey): //p')
 [ -n "$priv" ] && [ -n "$pub" ] || { echo "the key tool printed no keys" >&2; exit 60; }
@@ -327,12 +327,12 @@ curl -fsS --max-time 10 https://api.ipify.org 2>/dev/null || true
 "#;
 
 /// Generate the exit's Tunnel B REALITY keypair with the installed server
-/// program (`zray tools x25519`: URL-safe base64, no pad) and store it in
+/// program (`zray x25519`: URL-safe base64, no pad) and store it in
 /// `$TUNNEL_RT_CONF` (mode 640, `root:$SVC_USER`). Only the public half is
 /// printed; the private half never leaves the server. Prints `public_key=`.
 /// Exit 60 when the tool fails.
 pub const RT_KEYGEN: &str = r#"
-out=$("$BIN" tools x25519 2>/dev/null) || { echo "the key tool failed" >&2; exit 60; }
+out=$("$BIN" x25519 2>/dev/null || "$BIN" tools x25519 2>/dev/null) || { echo "the key tool failed" >&2; exit 60; }
 priv=$(printf '%s\n' "$out" | sed -n 's/^PrivateKey: //p')
 pub=$(printf '%s\n' "$out" | sed -n 's/^Password (PublicKey): //p')
 [ -n "$priv" ] && [ -n "$pub" ] || { echo "the key tool printed no keys" >&2; exit 60; }
@@ -562,3 +562,17 @@ since=$(systemctl show "$SERVICE" -p ActiveEnterTimestamp --value 2>/dev/null ||
 [ -n "$since" ] || exit 0
 journalctl -u "$SERVICE" --since "$since" -o short-unix --no-pager 2>/dev/null | grep -E "Session Created|Session Closed|Expired Sessions Cleaned" || true
 "#;
+
+#[cfg(test)]
+mod key_tool_tests {
+    use super::*;
+
+    /// The server program's key tools are `zray wg` / `zray x25519` (Xray's
+    /// names); `zray tools wg` does not exist. The scripts once called only
+    /// the latter, so every tunnel install stopped at "the key tool failed".
+    #[test]
+    fn key_scripts_call_the_real_subcommands() {
+        assert!(WG_KEYGEN.contains(r#""$BIN" wg"#));
+        assert!(RT_KEYGEN.contains(r#""$BIN" x25519"#));
+    }
+}

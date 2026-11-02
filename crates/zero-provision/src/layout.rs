@@ -412,7 +412,7 @@ pub const TUNNEL_RT_KEY_PLACEHOLDER: &str = "@REALITY_PRIVATE_KEY@";
 
 /// What the gateway's `reality-tunnel` outbound (Tunnel B) needs.
 /// `exit_public_key` is the exit's REALITY public key (URL-safe base64,
-/// no pad, as `zray tools x25519` prints it); `short_id` is the gateway's
+/// no pad, as `zray x25519` prints it); `short_id` is the gateway's
 /// client short id on the exit's inbound; `user_id` is the tunnel's VLESS
 /// UUID, the credential the exit authenticates.
 pub struct RealityTunnel<'a> {

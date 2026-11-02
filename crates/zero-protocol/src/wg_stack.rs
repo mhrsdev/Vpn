@@ -354,6 +354,11 @@ impl WgStack {
     /// neither visible to nor poisoned by the local network.
     pub async fn resolve(&self, name: &str) -> Result<Vec<IpAddr>, String> {
         let key = name.trim_end_matches('.').to_ascii_lowercase();
+        // A destination that arrives as text but is an IP address needs no
+        // lookup (and the resolver would answer NXDOMAIN for it).
+        if let Ok(ip) = key.parse::<IpAddr>() {
+            return Ok(vec![ip]);
+        }
         if let Some((addresses, until)) = lock(&self.cache).get(&key) {
             if *until > Instant::now() {
                 return Ok(addresses.clone());

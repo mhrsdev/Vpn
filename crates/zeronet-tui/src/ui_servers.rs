@@ -73,6 +73,9 @@ pub fn note_text(note: &Note) -> String {
         Note::Ipv6Unavailable { reason } => {
             format!("Tunnel C was honestly not provisioned: IPv6 is not really usable end-to-end ({reason}). Tunnels A and B work normally.")
         }
+        Note::PanelFailed { reason } => {
+            format!("The VPN is installed, but the operator panel could not be put on the server ({reason}). Install again to add it.")
+        }
     }
 }
 

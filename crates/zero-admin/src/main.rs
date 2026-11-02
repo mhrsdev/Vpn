@@ -5,6 +5,7 @@
 //!   zray-admin migrate [--config ...]
 //!   zray-admin init-layout            # create /etc/zeronet-admin + /var/lib/zeronet-admin
 //!   zray-admin set-password           # read password from stdin, store argon2id hash
+//!   zray-admin register-inbounds      # read a JSON array of inbounds from stdin
 //!   zray-admin unit                   # print the systemd unit
 //!
 //! The API binds loopback-only. Remote access is via SSH port-forward.
@@ -13,7 +14,7 @@ use std::path::PathBuf;
 use zero_admin::{config::AdminConfig, provision};
 
 fn usage() -> ! {
-    eprintln!("usage: zray-admin <serve|migrate|init-layout|set-password|unit> [--config PATH]");
+    eprintln!("usage: zray-admin <serve|migrate|init-layout|set-password|register-inbounds|unit> [--config PATH]");
     std::process::exit(2);
 }
 
@@ -144,6 +145,40 @@ fn main() {
                 std::process::exit(1);
             }
             println!("panel password set");
+        }
+        "register-inbounds" => {
+            // The installer tells the panel what the server serves: a JSON
+            // array on standard input, one object per inbound (tag, protocol,
+            // server_role, host, port, params, enabled). Existing tags update.
+            use std::io::Read;
+            let cfg = config_path_arg();
+            let dir = cfg
+                .parent()
+                .unwrap_or(std::path::Path::new("/etc/zeronet-admin"));
+            let db_path = dir.join("../../var/lib/zeronet-admin/admin.db");
+            let mut text = String::new();
+            std::io::stdin().read_to_string(&mut text).unwrap_or_default();
+            let list: Vec<zero_admin::store::Inbound> = match serde_json::from_str(&text) {
+                Ok(list) => list,
+                Err(e) => {
+                    eprintln!("inbounds are not valid JSON: {e}");
+                    std::process::exit(1);
+                }
+            };
+            let conn = match zero_admin::db::open(&db_path) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("open db: {e}");
+                    std::process::exit(1);
+                }
+            };
+            for ib in &list {
+                if let Err(e) = zero_admin::store::upsert_inbound(&conn, ib) {
+                    eprintln!("store {}: {e}", ib.tag);
+                    std::process::exit(1);
+                }
+            }
+            println!("registered {} inbound(s)", list.len());
         }
         "serve" => {
             let rt = tokio::runtime::Builder::new_multi_thread()

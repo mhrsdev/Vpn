@@ -6,6 +6,7 @@ pub mod keys;
 pub mod layout;
 pub mod links;
 pub mod manage;
+pub mod panel;
 pub mod probe;
 pub mod record;
 pub mod release;

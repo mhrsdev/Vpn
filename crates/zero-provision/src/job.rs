@@ -220,9 +220,13 @@ fn binary_source(path: &Option<String>, dir: &Option<String>) -> Result<BinarySo
     }
     if let Some(dir) = dir {
         let dir = std::path::Path::new(dir);
+        // The panel programs are optional: without them no panel is installed.
+        let optional = |name: &str| std::fs::read(dir.join(name)).unwrap_or_default();
         return Ok(BinarySource::Bundled {
             x64: read(&dir.join("zray-linux-x64"))?,
-            arm64: std::fs::read(dir.join("zray-linux-arm64")).unwrap_or_default(),
+            arm64: optional("zray-linux-arm64"),
+            admin_x64: optional("zray-admin-linux-x64"),
+            admin_arm64: optional("zray-admin-linux-arm64"),
         });
     }
     Ok(BinarySource::Release { tag: None })
@@ -595,6 +599,9 @@ async fn install_pair_job(
                 "configs": outcome.configs,
                 "record": outcome.record,
                 "notes": outcome.notes,
+                "admin_token": outcome.panel.as_ref().map(|p| p.admin_token.clone()),
+                "panel_password": outcome.panel.as_ref().map(|p| p.password.clone()),
+                "panel_port": outcome.panel.as_ref().map(|p| p.port),
             }),
         ),
         Err(e) => {
@@ -850,6 +857,9 @@ async fn install_job(args: InstallArgs, sink: &EventSink) -> EndReason {
                 "configs": outcome.record.client_configs(),
                 "record": outcome.record,
                 "notes": outcome.notes,
+                "admin_token": outcome.panel.as_ref().map(|p| p.admin_token.clone()),
+                "panel_password": outcome.panel.as_ref().map(|p| p.password.clone()),
+                "panel_port": outcome.panel.as_ref().map(|p| p.port),
             }),
         ),
         Err(e) => done_err(sink, e),

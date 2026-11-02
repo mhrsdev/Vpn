@@ -104,7 +104,30 @@ pub enum BinarySource {
     /// Server programs the app ships for each CPU: the one matching the
     /// server is uploaded over the SSH connection that is already verified by
     /// its host key. Nothing is downloaded, so no release is needed.
-    Bundled { x64: Vec<u8>, arm64: Vec<u8> },
+    Bundled {
+        x64: Vec<u8>,
+        arm64: Vec<u8>,
+        /// The operator panel program for each CPU (empty: no panel).
+        admin_x64: Vec<u8>,
+        admin_arm64: Vec<u8>,
+    },
+}
+
+impl BinarySource {
+    /// The panel program for a server of this CPU, when the app ships one.
+    fn panel_program(&self, arch: &str) -> Option<&[u8]> {
+        match self {
+            BinarySource::Bundled {
+                admin_x64,
+                admin_arm64,
+                ..
+            } => {
+                let bytes = if arch == "ARM64" { admin_arm64 } else { admin_x64 };
+                (!bytes.is_empty()).then_some(bytes.as_slice())
+            }
+            _ => None,
+        }
+    }
 }
 
 pub struct RealityRequest {
@@ -182,11 +205,16 @@ pub enum Note {
     /// Tunnel C was honestly not provisioned: IPv6 is not really usable
     /// end-to-end on one or both servers. Tunnels A and B work normally.
     Ipv6Unavailable { reason: String },
+    /// The operator panel could not be put on the server. The VPN itself is
+    /// installed and works; the panel can be added by installing again.
+    PanelFailed { reason: String },
 }
 
 pub struct Outcome {
     pub record: ServerRecord,
     pub notes: Vec<Note>,
+    /// How to reach the operator panel, when it was installed.
+    pub panel: Option<crate::panel::PanelAccess>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -566,6 +594,28 @@ pub async fn install(
             Err(_) => notes.push(Note::KeyNotWorking),
         }
     }
+    // The operator panel, when the app ships it. A failure here does not
+    // undo the VPN: it is reported and the rest stays.
+    let mut panel = None;
+    if let Some(program) = request.binary.panel_program(arch) {
+        progress.detail("installing the operator panel".to_string());
+        match crate::panel::deploy(
+            &conn,
+            program,
+            "exit",
+            &login.host,
+            management,
+            None,
+            &services,
+        )
+        .await
+        {
+            Ok(access) => panel = Some(access),
+            Err(e) => notes.push(Note::PanelFailed {
+                reason: e.to_string(),
+            }),
+        }
+    }
     let _ = conn
         .script(&[("WORK", layout::WORK_DIR)], scripts::CLEAN, QUICK)
         .await;
@@ -594,7 +644,11 @@ pub async fn install(
         role: Role::Single,
         tunnel_port: None,
     };
-    Ok(Outcome { record, notes })
+    Ok(Outcome {
+        record,
+        notes,
+        panel,
+    })
 }
 
 struct Fetched {
@@ -671,7 +725,7 @@ async fn fetch_program(
             version = found_tag;
         }
         BinarySource::Local(bytes) => upload_program(conn, bytes).await?,
-        BinarySource::Bundled { x64, arm64 } => {
+        BinarySource::Bundled { x64, arm64, .. } => {
             let bytes = if arch == "ARM64" { arm64 } else { x64 };
             if bytes.is_empty() {
                 return Err(Error::Step {
@@ -1110,6 +1164,8 @@ pub struct PairOutcome {
     pub record: PairRecord,
     pub notes: Vec<Note>,
     pub configs: Vec<ClientConfig>,
+    /// How to reach the operator panel on the gateway, when it was installed.
+    pub panel: Option<crate::panel::PanelAccess>,
 }
 
 /// What this run put on one server, so a failure or a cancellation can take
@@ -2604,6 +2660,28 @@ async fn run_pair(
         ipv6_status,
     };
     let configs = record.client_configs();
+    // The operator panel on the gateway, the server clients connect to.
+    let mut panel = None;
+    if let Some(program) = request.binary.panel_program(gw_arch) {
+        progress.detail(Server::Gateway, "installing the operator panel");
+        let gw = conns.gw.as_ref().expect("connected in phase 3");
+        match crate::panel::deploy(
+            gw,
+            program,
+            "gateway",
+            &gateway.login.host,
+            record.gateway.management_port,
+            Some(&exit.login.host),
+            &record.gateway.services,
+        )
+        .await
+        {
+            Ok(access) => panel = Some(access),
+            Err(e) => notes.push(Note::PanelFailed {
+                reason: e.to_string(),
+            }),
+        }
+    }
     let gw_conn = conns.gw.take().expect("connected in phase 3");
     let ex_conn = conns.ex.take().expect("connected in phase 3");
     let _ = gw_conn
@@ -2618,6 +2696,7 @@ async fn run_pair(
         record,
         notes: std::mem::take(notes),
         configs,
+        panel,
     })
 }
 

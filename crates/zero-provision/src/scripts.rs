@@ -296,6 +296,14 @@ if [ "$code" = 200 ]; then
   echo
 elif [ "$code" = 404 ]; then
   echo "tunnel=missing"
+  # No tunnel endpoint: the per-outbound success/failure counters the server
+  # keeps from real traffic say whether the tunnel carries anything.
+  if curl -s -o "$WORK/health.json" --max-time 8 -H "Authorization: Bearer $(cat "$TOKEN_FILE")" "http://127.0.0.1:$MANAGEMENT_PORT/health" 2>/dev/null; then
+    printf 'health='
+    tr -d '\n' < "$WORK/health.json"
+    echo
+  fi
+  rm -f "$WORK/health.json"
 else
   echo "tunnel=down"
 fi

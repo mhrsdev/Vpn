@@ -169,6 +169,7 @@
     <string name="pair_failed_note">The installer rolls back automatically on failure, so nothing is left half-installed. You can go back and retry.</string>
     <string name="pair_use_in_app">Use in this app</string>
     <string name="pair_tunnel_up">Tunnel up</string>
+    <string name="pair_tunnel_idle">Tunnel idle (no traffic yet)</string>
     <string name="pair_tunnel_down">Tunnel down</string>
     <string name="pair_relink">Re-link</string>
     <string name="pair_remove">Remove pair</string>

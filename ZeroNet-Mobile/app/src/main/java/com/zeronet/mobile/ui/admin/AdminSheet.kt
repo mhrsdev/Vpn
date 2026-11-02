@@ -70,6 +70,10 @@ fun AdminSheet(model: AdminModel) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
             }
+            model.upgrading?.let {
+                Text(it, color = c.muted, style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+            }
             model.error?.let {
                 Text(it, color = c.err, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                 Spacer(Modifier.height(8.dp))

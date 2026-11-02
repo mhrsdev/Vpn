@@ -39,6 +39,8 @@ data class TunnelStatus(
     val gatewayRx: Long,
     val gatewayTx: Long,
     val error: String?,
+    /** `up`, `down`, or `idle` (nothing has used the tunnel yet, so it is not known). */
+    val state: String = if (up) "up" else "down",
 )
 
 /** Live figures for both ends of a pair. */
@@ -399,6 +401,7 @@ class PairModel(
                 gatewayRx = done.optLong("gateway_rx"),
                 gatewayTx = done.optLong("gateway_tx"),
                 error = null,
+                state = done.optString("state").takeIf { it.isNotEmpty() } ?: if (done.optBoolean("up")) "up" else "down",
             )
         } else if (done.optString("error") != "cancelled") {
             tunnel[pairId] = TunnelStatus(false, null, 0, 0, done.optString("error"))

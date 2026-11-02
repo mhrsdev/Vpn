@@ -464,6 +464,11 @@ pub struct TunnelStatus {
     pub last_handshake_secs_ago: Option<u64>,
     pub rx: Option<u64>,
     pub tx: Option<u64>,
+    /// What the server's own per-outbound counters say about its tunnels when
+    /// it has no tunnel endpoint: `Some(true)` it carried traffic and nothing
+    /// is failing, `Some(false)` it only failed, `None` no traffic yet.
+    #[serde(default)]
+    pub health_verdict: Option<bool>,
     /// Why this is not `up`, in plain words; `None` when up.
     pub note: Option<String>,
     /// Tunnel B (VLESS+REALITY) key material is present on this server.
@@ -503,6 +508,7 @@ pub async fn tunnel_status(
         last_handshake_secs_ago: None,
         rx: None,
         tx: None,
+        health_verdict: None,
         note: None,
         tunnel_b_key: false,
         tunnel_b_config: false,
@@ -530,6 +536,8 @@ pub async fn tunnel_status(
                 }
                 _ => {}
             }
+        } else if let Some(body) = line.strip_prefix("health=") {
+            status.health_verdict = health_verdict(body);
         } else if let Some(body) = line.strip_prefix("body=") {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(body) {
                 let get = |key: &str| json.get(key).and_then(|v| v.as_u64());
@@ -549,6 +557,35 @@ pub async fn tunnel_status(
     Ok(status)
 }
 
+/// The verdict from a server's `/health` list (`[{tag, successes, failures,
+/// consecutiveFailures}]`) for its tunnel outbounds: carrying traffic with no
+/// failure in a row is up, only failing is down, no traffic at all is unknown.
+pub fn health_verdict(body: &str) -> Option<bool> {
+    let list: Vec<serde_json::Value> = serde_json::from_str(body).ok()?;
+    let (mut ok, mut failing) = (false, false);
+    for entry in list {
+        let tag = entry["tag"].as_str().unwrap_or("");
+        if !(tag == "wg-tunnel" || tag == "reality-tunnel" || tag.starts_with("tunnel")) {
+            continue;
+        }
+        let successes = entry["successes"].as_u64().unwrap_or(0);
+        let failures = entry["failures"].as_u64().unwrap_or(0);
+        let in_a_row = entry["consecutiveFailures"].as_u64().unwrap_or(0);
+        if successes > 0 && in_a_row == 0 {
+            ok = true;
+        } else if failures > 0 && successes == 0 {
+            failing = true;
+        }
+    }
+    if ok {
+        Some(true)
+    } else if failing {
+        Some(false)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -556,6 +593,17 @@ mod tests {
     /// The cleanup scripts get `SERVICES` as an env value, and `script()`
     /// refuses anything outside the shell-safe alphabet (a space included),
     /// which once made every removal and rollback fail before it ran.
+    #[test]
+    fn health_verdict_tells_idle_from_down() {
+        let idle = r#"[{"tag":"wg-tunnel","successes":0,"failures":0,"consecutiveFailures":0}]"#;
+        let up = r#"[{"tag":"wg-tunnel","successes":9,"failures":1,"consecutiveFailures":0}]"#;
+        let down = r#"[{"tag":"wg-tunnel","successes":0,"failures":4,"consecutiveFailures":4}]"#;
+        assert_eq!(health_verdict(idle), None);
+        assert_eq!(health_verdict(up), Some(true));
+        assert_eq!(health_verdict(down), Some(false));
+        assert_eq!(health_verdict("not json"), None);
+    }
+
     #[test]
     fn services_value_is_shell_safe_and_split_by_the_script() {
         assert!(ssh::shell_safe("zray,masterdns"));

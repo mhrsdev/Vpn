@@ -818,9 +818,22 @@ async fn tunnel_status_job(record: PairRecord, sink: &EventSink) -> EndReason {
     ex_conn.close().await;
     match (gw, ex) {
         (Ok(gw), Ok(ex)) => {
-            let up = gw.up && ex.up;
+            // A server with a tunnel endpoint answers for itself; one without
+            // is judged by what its tunnels carried. Unknown is not "down".
+            let state = if gw.up && ex.up {
+                "up"
+            } else {
+                match gw.health_verdict {
+                    Some(true) => "up",
+                    Some(false) => "down",
+                    None if gw.note.as_deref().is_some_and(|n| n.contains("no tunnel endpoint")) => "idle",
+                    None => "down",
+                }
+            };
+            let up = state == "up";
             let mut fields = json!({
                 "up": up,
+                "state": state,
                 "last_handshake_secs_ago": gw.last_handshake_secs_ago,
                 "gateway_rx": gw.rx,
                 "gateway_tx": gw.tx,
@@ -839,7 +852,11 @@ async fn tunnel_status_job(record: PairRecord, sink: &EventSink) -> EndReason {
                     "ipv6_status": record.ipv6_status,
                 },
             });
-            if !up {
+            if state == "idle" {
+                fields["note"] = json!(
+                    "No traffic has used the tunnel yet, so its state is not known."
+                );
+            } else if !up {
                 let notes: Vec<&str> = [gw.note.as_deref(), ex.note.as_deref()]
                     .into_iter()
                     .flatten()

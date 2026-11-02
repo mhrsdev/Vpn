@@ -149,11 +149,11 @@ class AdminModel(
      * <redacted> per call from memory, never persisted.
      */
     private suspend fun api(method: String, path: String, query: JSONObject? = null, body: JSONObject? = null, target: String = "exit"): JSONObject? {
+        // A pair made before the panel existed has no token: put the current
+        // server program and the panel on it once, keep the token, go on.
+        if (token.isNullOrEmpty()) upgradePair()
         val t = token
-        if (t.isNullOrEmpty()) {
-            error = "No admin token for this pair (provisioned before token delivery, or the record is damaged)."
-            return null
-        }
+        if (t.isNullOrEmpty()) return null
         val id = pairId
         val pairRecord = withContext(Dispatchers.IO) {
             store.pairs().firstOrNull { it.pairId == id }?.record
@@ -176,6 +176,56 @@ class AdminModel(
             return null
         }
         return last
+    }
+
+    /** Progress text while an older pair is being upgraded (shown in place of the error). */
+    var upgrading by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * Install the operator panel (and the current server program) on a pair an
+     * older version made. Its config, keys and users are kept; the gateway's
+     * server program restarts, so connections drop for a few seconds.
+     */
+    private suspend fun upgradePair() {
+        val id = pairId ?: return
+        val entry = withContext(Dispatchers.IO) { store.pairs().firstOrNull { it.pairId == id } }
+        if (entry == null) {
+            error = "No pair record for this pair (re-provision to enable the admin panel)."
+            return
+        }
+        val dir = com.zeronet.mobile.ui.myserver.ServerProgram.dir(context)
+        if (dir == null) {
+            error = "This build has no panel program to install."
+            return
+        }
+        upgrading = "Installing the management panel on the server…"
+        val request = JSONObject()
+            .put("op", "upgrade_pair")
+            .put("pair_record", entry.record)
+            .put("local_binary_dir", dir)
+        var last = JSONObject().put("t", "done").put("ok", false).put("error", "cancelled")
+        try {
+            run(request).collect { e ->
+                when (e.optString("t")) {
+                    "detail" -> upgrading = e.optString("text")
+                    "done" -> last = e
+                }
+            }
+        } finally {
+            upgrading = null
+        }
+        if (!last.optBoolean("ok")) {
+            error = last.optString("error")
+            return
+        }
+        val fresh = last.optString("admin_token").takeIf { it.isNotEmpty() }
+        if (fresh == null) {
+            error = "The server did not return a panel token."
+            return
+        }
+        withContext(Dispatchers.IO) { store.putPair(entry.copy(adminToken = fresh)) }
+        token = fresh
     }
 
     private fun launch(block: suspend () -> Unit) {

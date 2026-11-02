@@ -112,11 +112,12 @@ private fun PairListPage(model: PairModel) {
         Body(stringResource(R.string.pair_intro_2), muted = true)
     } else {
         model.pairs.forEach { pair ->
-            val up = model.tunnel[pair.pairId]?.up
-            val status = when (up) {
-                true -> stringResource(R.string.pair_tunnel_up)
-                false -> stringResource(R.string.pair_tunnel_down)
-                null -> null
+            val tunnelState = model.tunnel[pair.pairId]?.state
+            val status = when (tunnelState) {
+                "up" -> stringResource(R.string.pair_tunnel_up)
+                "idle" -> stringResource(R.string.pair_tunnel_idle)
+                "down" -> stringResource(R.string.pair_tunnel_down)
+                else -> null
             }
             NavRow(
                 title = pair.name.ifEmpty { stringResource(R.string.pair_default_name) },
@@ -312,9 +313,17 @@ private fun PairServerPage(model: PairModel, screen: MsScreen.PairServer, admin:
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (t?.up == true) stringResource(R.string.pair_tunnel_up) else stringResource(R.string.pair_tunnel_down),
+                    when (t?.state) {
+                        "up" -> stringResource(R.string.pair_tunnel_up)
+                        "idle" -> stringResource(R.string.pair_tunnel_idle)
+                        else -> stringResource(R.string.pair_tunnel_down)
+                    },
                     style = MaterialTheme.typography.titleSmall,
-                    color = if (t?.up == true) c.accent else c.err,
+                    color = when (t?.state) {
+                        "up" -> c.accent
+                        "idle" -> c.muted
+                        else -> c.err
+                    },
                 )
                 t?.lastHandshakeSecsAgo?.let {
                     Small(stringResource(R.string.pair_handshake, android.text.format.DateUtils.getRelativeTimeSpanString(System.currentTimeMillis() - it * 1000, System.currentTimeMillis(), 0)))

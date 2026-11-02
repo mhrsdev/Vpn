@@ -1,0 +1,16 @@
+[package]
+name = "zero-ha-tests"
+version = "0.1.0"
+edition = "2021"
+description = "Integration-test scaffolding for the dual always-on Iran→USA failover leg (SCAFFOLD)"
+license = "MIT"
+
+# Detached from the parent workspace so this additive scaffold does not
+# touch the root Cargo.toml. Promote to a workspace member (add to the
+# root `members` list and remove this `[workspace]` table) when the
+# engine API lands. See README.md.
+[workspace]
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "net"] }
+zero-observatory = { path = "../zero-observatory" }

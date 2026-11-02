@@ -42,7 +42,7 @@ android {
     namespace = "com.zeronet.mobile"
     // Build-env adaptation (2026-11-01): Google has not published the android-37
     // platform yet; the build env ships android-36. Upstream tracks 37.
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.zeronet.mobile"

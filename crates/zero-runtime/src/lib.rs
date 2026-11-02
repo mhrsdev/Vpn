@@ -5,6 +5,7 @@
 
 pub mod api;
 pub mod cdn_check;
+pub mod dyn_users;
 pub mod classify;
 mod dns_out;
 pub mod egress;

@@ -50,6 +50,9 @@ pub struct Stats {
     pub tun: AtomicU8,
     /// Who is connected, as counts only ([`crate::usage`]).
     pub usage: Arc<crate::usage::UsageTracker>,
+    /// Users added to an inbound at run time and each user's bytes
+    /// ([`crate::dyn_users`]).
+    pub users: crate::dyn_users::UserBook,
 }
 
 /// [`Stats::tun`]: this runtime has no TUN device.
@@ -134,6 +137,7 @@ impl Stats {
                 *value = 0;
             }
         }
+        counters.extend(self.users.counters());
         counters.sort_by(|a, b| a.0.cmp(&b.0));
         counters
     }
@@ -3082,6 +3086,11 @@ impl Server {
                     Some(&ob.tag),
                     &outcome.transferred,
                 );
+                if let Some(user) = ctx.user.as_deref() {
+                    self.stats
+                        .users
+                        .record(&ctx.inbound_tag, user, &outcome.transferred);
+                }
                 self.stats
                     .uploaded
                     .fetch_add(outcome.transferred.uploaded, Ordering::Relaxed);
@@ -3137,6 +3146,11 @@ impl Server {
                 self.record_observation(&outcome).await;
                 self.stats
                     .record_tag_traffic(&ctx.inbound_tag, None, &outcome.transferred);
+                if let Some(user) = ctx.user.as_deref() {
+                    self.stats
+                        .users
+                        .record(&ctx.inbound_tag, user, &outcome.transferred);
+                }
                 self.stats
                     .uploaded
                     .fetch_add(outcome.transferred.uploaded, Ordering::Relaxed);
@@ -4079,6 +4093,9 @@ impl Server {
         self.record_observation(&outcome).await;
         self.stats
             .record_tag_traffic(&ctx.inbound_tag, None, &outcome.transferred);
+        if let Some(user) = ctx.user.as_deref() {
+            self.stats.users.record(&ctx.inbound_tag, user, &outcome.transferred);
+        }
         self.stats
             .uploaded
             .fetch_add(outcome.transferred.uploaded, Ordering::Relaxed);
@@ -4750,11 +4767,30 @@ impl Server {
                     .await
             }
         };
-        let Some(user) = config.users.iter().find(|user| user.uuid == request.uuid) else {
-            let reason = "VLESS UUID is not authorised".to_string();
-            return self
-                .fall_back(fallbacks, conn, stream, buffered, peer, reason)
-                .await;
+        // The config's own users first, then the ones the panel added.
+        let added;
+        let user = match config.users.iter().find(|user| user.uuid == request.uuid) {
+            Some(user) => user,
+            None => match self.stats.users.find(&tag, &request.uuid) {
+                Some(identity) => {
+                    // An added user takes the flow of the inbound's first user.
+                    let model = config.users.first();
+                    added = zero_config::VlessInboundUser {
+                        uuid: request.uuid,
+                        flow: model.map(|m| m.flow).unwrap_or_default(),
+                        vision_seed: model.and_then(|m| m.vision_seed),
+                        email: Some(identity),
+                        reverse: None,
+                    };
+                    &added
+                }
+                None => {
+                    let reason = "VLESS UUID is not authorised".to_string();
+                    return self
+                        .fall_back(fallbacks, conn, stream, buffered, peer, reason)
+                        .await;
+                }
+            },
         };
         let request_is_vision = request.flow.is_some();
         let user_is_vision = user.flow.is_vision();
@@ -4870,6 +4906,9 @@ impl Server {
         self.record_observation(&outcome).await;
         self.stats
             .record_tag_traffic(&ctx.inbound_tag, None, &outcome.transferred);
+        if let Some(user) = ctx.user.as_deref() {
+            self.stats.users.record(&ctx.inbound_tag, user, &outcome.transferred);
+        }
         self.stats
             .uploaded
             .fetch_add(outcome.transferred.uploaded, Ordering::Relaxed);
@@ -5215,6 +5254,9 @@ impl Server {
         self.record_observation(&outcome).await;
         self.stats
             .record_tag_traffic(&ctx.inbound_tag, None, &outcome.transferred);
+        if let Some(user) = ctx.user.as_deref() {
+            self.stats.users.record(&ctx.inbound_tag, user, &outcome.transferred);
+        }
         self.stats
             .uploaded
             .fetch_add(outcome.transferred.uploaded, Ordering::Relaxed);

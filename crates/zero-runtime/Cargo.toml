@@ -44,6 +44,7 @@ httparse = { workspace = true }
 h3 = { workspace = true }
 h3-quinn = { workspace = true }
 sha2 = { workspace = true }
+hmac = { workspace = true }
 # QUIC Initial sniffing decrypts the ClientHello the way RFC 9001 defines it:
 # HKDF for the initial secrets, AES for header protection and AEAD.
 hkdf = { workspace = true }

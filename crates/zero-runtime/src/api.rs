@@ -203,7 +203,8 @@ async fn handle_connection(
                 .map_err(|error| format!("encoding traffic stats: {error}"))?;
             write_response(&mut stream, 200, "ok", &body).await
         }
-        ("GET", "/usage") => {
+        ("GET", path) if path == "/usage" || path.starts_with("/usage?") => {
+            let detail = path.contains("detail=1") || path.contains("detail=true");
             // Counts only: sessions and devices per inbound, plus its byte
             // totals. See `crate::usage` for why nothing here can name a user.
             let snapshot = server.stats.usage.snapshot();
@@ -229,11 +230,16 @@ async fn handle_connection(
                     })
                 })
                 .collect();
-            let body = serde_json::to_vec(&serde_json::json!({
+            let mut answer = serde_json::json!({
                 "window_secs": snapshot.window_secs,
                 "inbounds": inbounds,
-            }))
-            .map_err(|error| format!("encoding usage: {error}"))?;
+            });
+            if detail {
+                // Per user, as keyed hashes: see `crate::dyn_users`.
+                answer["users"] = serde_json::Value::Array(server.stats.users.detail());
+            }
+            let body = serde_json::to_vec(&answer)
+                .map_err(|error| format!("encoding usage: {error}"))?;
             write_response(&mut stream, 200, "ok", &body).await
         }
         ("GET", "/health") => {
@@ -258,6 +264,24 @@ async fn handle_connection(
             let body = serde_json::to_vec(&report)
                 .map_err(|error| format!("encoding refresh report: {error}"))?;
             write_response(&mut stream, 200, "ok", &body).await
+        }
+        ("POST", "/api/v1/engine/users/reload") => {
+            // The panel changed `<users dir>/<tag>.json`: take it up now.
+            let body = &data[head_end..head_end + content_length];
+            let value: serde_json::Value = serde_json::from_slice(body)
+                .map_err(|error| format!("users reload body is not JSON: {error}"))?;
+            let Some(tag) = value.get("tag").and_then(serde_json::Value::as_str) else {
+                return write_response(&mut stream, 400, "bad request", b"needs a string \"tag\"")
+                    .await;
+            };
+            match server.stats.users.reload(tag) {
+                Ok(users) => {
+                    let body = serde_json::to_vec(&serde_json::json!({ "users": users }))
+                        .map_err(|error| error.to_string())?;
+                    write_response(&mut stream, 200, "ok", &body).await
+                }
+                Err(error) => write_response(&mut stream, 404, "unknown tag", error.as_bytes()).await,
+            }
         }
         ("POST", "/reload") => {
             let body = &data[head_end..head_end + content_length];

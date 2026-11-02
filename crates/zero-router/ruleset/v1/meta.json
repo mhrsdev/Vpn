@@ -1,0 +1,50 @@
+{
+ "format": "zeronet-ruleset",
+ "version": "v1",
+ "generated_at": "2026-11-01",
+ "description": "v1 Iranian destination snapshot for smart split routing (Iranian -> direct Iran egress; foreign/unknown -> USA tunnel).",
+ "sources": [
+  {
+   "kind": "ip-ranges",
+   "name": "RIPE NCC delegated stats (ripencc)",
+   "url": "https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-latest",
+   "retrieved_at": "2026-11-01",
+   "license": "factual allocation data; no license restriction on facts (evaluated 2026-11-01; NOT vendored from any GPL source)",
+   "note": "filtered to country=IR, ipv4+ipv6, collapsed to minimal CIDR set"
+  },
+  {
+   "kind": "domains",
+   "name": "manual curation (agent-compiled)",
+   "url": null,
+   "retrieved_at": "2026-11-01",
+   "license": "no third-party data; agent-curated list of well-known Iranian services (factual knowledge)",
+   "note": "suffix match; subsumed subdomains removed"
+  }
+ ],
+ "rejected_sources": [
+  {
+   "name": "Chocolate4U/Iran-sing-box-rules",
+   "url": "https://github.com/Chocolate4U/Iran-sing-box-rules",
+   "reason": "LICENSE is GPL-3.0 (verified 2026-11-01 via GitHub repo page). Incompatible with this project's permissive-only policy (deny.toml bans non-permissive). NOT vendored."
+  },
+  {
+   "name": "Loyalsoldier/v2ray-rules-dat",
+   "url": "https://github.com/Loyalsoldier/v2ray-rules-dat",
+   "reason": "LICENSE is GPL-3.0 (verified 2026-11-01). NOT vendored."
+  },
+  {
+   "name": "v2fly/geoip",
+   "url": "https://github.com/v2fly/geoip",
+   "reason": "LICENSE is CC-BY-SA-4.0 (verified 2026-11-01); data derived from MaxMind GeoLite2 (CC BY-SA) and DB-IP (CC-BY-4.0). ShareAlike is not permissive; NOT vendored."
+  }
+ ],
+ "stats": {
+  "domains": 117,
+  "ipv4_cidrs": 1747,
+  "ipv6_cidrs": 577,
+  "ipv4_addresses": 10840064
+ },
+ "changelog": [
+  "v1: initial snapshot (RIPE IR allocations + curated domains)"
+ ]
+}

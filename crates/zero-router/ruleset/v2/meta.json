@@ -1,0 +1,26 @@
+{
+ "version": "v2",
+ "updated": "2026-11-01",
+ "sources": [
+  {
+   "name": "Chocolate4U/Iran-clash-rules (release branch)",
+   "url": "https://github.com/Chocolate4U/Iran-clash-rules/tree/release",
+   "files": [
+    "ir.txt",
+    "ircidr.txt"
+   ],
+   "retrieved": "2026-11-01",
+   "license": "GPL-3.0 (repo LICENSE, verified 2026-11-01)",
+   "license_note": "Vendored per EXPLICIT owner override 2026-11-01 (\"لایسنسش اشکال نداره همونو استفاده کن\"). Owner accepts GPL-3.0 copyleft implications for this private personal project. If the project is ever distributed publicly, GPL-3.0 compliance obligations apply to the product."
+  }
+ ],
+ "stats": {
+  "domains": 57559,
+  "ipv4_cidrs": 2098,
+  "ipv6_cidrs": 716
+ },
+ "changelog": [
+  "v2: upstream snapshot from Chocolate4U (owner override of v1 curated set)"
+ ],
+ "supersedes": "v1 (curated set retained as fallback)"
+}

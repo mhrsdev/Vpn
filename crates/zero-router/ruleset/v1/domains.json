@@ -1,0 +1,710 @@
+{
+ "format": "zeronet-ruleset",
+ "version": "v1",
+ "updated": "2026-11-01",
+ "match": "suffix",
+ "entries": [
+  {
+   "suffix": "ac.ir",
+   "category": "university",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "adliran.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "afranet.com",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "alibaba.ir",
+   "category": "travel",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "ansarbank.com",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "aparat.com",
+   "category": "video",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "arvancloud.com",
+   "category": "cloud",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "arvancloud.ir",
+   "category": "cloud",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "asiatech.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "asriran.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "ba24.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "balad.ir",
+   "category": "maps",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bale.ai",
+   "category": "messenger",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bank-day.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bankmellat.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bankmelli.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bankpasargad.com",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "banksaderat.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "banksepah.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "basalam.com",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bim.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bitpin.ir",
+   "category": "crypto",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bmi.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "bsi.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "cafebazaar.ir",
+   "category": "appstore",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "cbi.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "derak.cloud",
+   "category": "cloud",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "digikala.com",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "digistyle.com",
+   "category": "ecommerce",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "divar.ir",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "dolat.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "donya-e-eqtesad.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "edbi.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "eghtesadonline.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "eitaa.com",
+   "category": "messenger",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "emalls.ir",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "enbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "entekhab.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "exnovin.io",
+   "category": "crypto",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "fararu.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "farsnews.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "fidibo.com",
+   "category": "books",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "filimo.com",
+   "category": "video",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "flightio.ir",
+   "category": "travel",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "footballi.net",
+   "category": "sport",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "gap.im",
+   "category": "messenger",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "gov.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "hiweb.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "iran.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "irancell.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "iranserver.com",
+   "category": "cloud",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "irib.ir",
+   "category": "media",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "iribnews.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "irna.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "isna.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "izbank.ir",
+   "category": "bank",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "karafarinbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "khabaronline.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "majlis.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mashreghnews.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mci.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "medu.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mehrbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mehrnews.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mfa.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "middleeastbank.ir",
+   "category": "bank",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "modiseh.com",
+   "category": "ecommerce",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "mrbilit.ir",
+   "category": "travel",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "msrt.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "myket.ir",
+   "category": "appstore",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "namava.ir",
+   "category": "video",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "neshan.org",
+   "category": "maps",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "nobitex.ir",
+   "category": "crypto",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "parsian-bank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "parsijoo.ir",
+   "category": "search",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "parspack.com",
+   "category": "cloud",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "pishgaman.net",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "police.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "postbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "president.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "qmb.ir",
+   "category": "bank",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "ramzinex.com",
+   "category": "crypto",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "resalatbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "respina.net",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "rightel.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "rubika.ir",
+   "category": "messenger",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sabteahval.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sb24.com",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "shahrbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sharif.ir",
+   "category": "university",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "shatelmobile.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sheypoor.com",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sibapp.com",
+   "category": "appstore",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sibche.com",
+   "category": "appstore",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "sina-bank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "snapp.ir",
+   "category": "ride",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "snappfood.ir",
+   "category": "food",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "snapptrip.ir",
+   "category": "travel",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "soroush.ir",
+   "category": "messenger",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "ssaa.ir",
+   "category": "gov",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "taaghche.com",
+   "category": "books",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tabnak.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "takhfifan.com",
+   "category": "ecommerce",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tapsi.ir",
+   "category": "ride",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tarafdari.com",
+   "category": "sport",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tasnimnews.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tci.ir",
+   "category": "telecom",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tejaratbank.ir",
+   "category": "bank",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tejaratnews.com",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "telewebion.com",
+   "category": "video",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "torob.com",
+   "category": "ecommerce",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "tourismbank.ir",
+   "category": "bank",
+   "confidence": "medium",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "varzesh3.com",
+   "category": "sport",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "wallex.ir",
+   "category": "crypto",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "yjc.ir",
+   "category": "news",
+   "confidence": "high",
+   "source": "curated-v1"
+  },
+  {
+   "suffix": "zhaket.com",
+   "category": "web",
+   "confidence": "medium",
+   "source": "curated-v1"
+  }
+ ]
+}

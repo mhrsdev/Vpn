@@ -128,8 +128,12 @@ install -d -m 700 -o "$LOGIN_USER" "$home/.ssh"
 touch "$home/.ssh/authorized_keys"
 chmod 600 "$home/.ssh/authorized_keys"
 chown "$LOGIN_USER" "$home/.ssh/authorized_keys"
-if ! grep -qxF -f "$WORK/app.pub" "$home/.ssh/authorized_keys"; then
-  cat "$WORK/app.pub" >> "$home/.ssh/authorized_keys"
+ak="$home/.ssh/authorized_keys"
+if ! grep -qxF -f "$WORK/app.pub" "$ak"; then
+  # A last line without a newline would swallow the new key (and break it).
+  [ -z "$(tail -c1 "$ak")" ] || echo >> "$ak"
+  cat "$WORK/app.pub" >> "$ak"
+  [ -z "$(tail -c1 "$ak")" ] || echo >> "$ak"
 fi
 "#;
 
@@ -570,6 +574,11 @@ mod key_tool_tests {
     /// The server program's key tools are `zray wg` / `zray x25519` (Xray's
     /// names); `zray tools wg` does not exist. The scripts once called only
     /// the latter, so every tunnel install stopped at "the key tool failed".
+    #[test]
+    fn add_key_never_glues_a_key_onto_the_previous_line() {
+        assert!(ADD_KEY.contains(r#"tail -c1 "$ak""#));
+    }
+
     #[test]
     fn key_scripts_call_the_real_subcommands() {
         assert!(WG_KEYGEN.contains(r#""$BIN" wg"#));

@@ -101,6 +101,10 @@ pub enum BinarySource {
     Release { tag: Option<String> },
     /// Bytes the app itself holds, installed as they are. Unverified.
     Local(Vec<u8>),
+    /// Server programs the app ships for each CPU: the one matching the
+    /// server is uploaded over the SSH connection that is already verified by
+    /// its host key. Nothing is downloaded, so no release is needed.
+    Bundled { x64: Vec<u8>, arm64: Vec<u8> },
 }
 
 pub struct RealityRequest {
@@ -666,24 +670,17 @@ async fn fetch_program(
             verified = true;
             version = found_tag;
         }
-        BinarySource::Local(bytes) => {
-            let out = conn
-                .script(
-                    &[("WORK", layout::WORK_DIR)],
-                    "install -d -m 700 \"$WORK\"",
-                    QUICK,
-                )
-                .await?;
-            if !out.ok() {
-                return Err(fail(Step::Download, &out));
+        BinarySource::Local(bytes) => upload_program(conn, bytes).await?,
+        BinarySource::Bundled { x64, arm64 } => {
+            let bytes = if arch == "ARM64" { arm64 } else { x64 };
+            if bytes.is_empty() {
+                return Err(Error::Step {
+                    step: Step::Download,
+                    detail: format!("this app has no server program for {arch}"),
+                });
             }
-            conn.put_file(
-                &format!("{}/program", layout::WORK_DIR),
-                "755",
-                "root:root",
-                bytes,
-            )
-            .await?;
+            upload_program(conn, bytes).await?;
+            version = String::from("bundled with the app");
         }
     }
     Ok(Fetched { verified, version })
@@ -1451,6 +1448,23 @@ struct ExitDeployed {
     verified: bool,
     version: String,
     management_port: u16,
+}
+
+/// Put a server program from the app into the scratch directory on the server.
+async fn upload_program(conn: &Connection, bytes: &[u8]) -> Result<(), Error> {
+    let out = conn
+        .script(
+            &[("WORK", layout::WORK_DIR)],
+            "install -d -m 700 \"$WORK\"",
+            QUICK,
+        )
+        .await?;
+    if !out.ok() {
+        return Err(fail(Step::Download, &out));
+    }
+    conn.put_file(&format!("{}/program", layout::WORK_DIR), "755", "root:root", bytes)
+        .await?;
+    Ok(())
 }
 
 /// Install the exit: the `tunnel-in` WireGuard inbound and a freedom egress.

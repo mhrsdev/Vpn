@@ -200,9 +200,32 @@ pub struct PairInstallArgs {
     /// release (unverified; reported as such).
     #[serde(default)]
     pub local_binary_path: Option<String>,
+    /// A folder holding `zray-linux-x64` and `zray-linux-arm64` shipped with
+    /// the app; used when no `local_binary_path` is given.
+    #[serde(default)]
+    pub local_binary_dir: Option<String>,
     /// Install the Huawei modem L2TP server on the gateway (Design G).
     #[serde(default)]
     pub modem_server: bool,
+}
+
+/// Where the server program comes from: a file, a folder of per-CPU files the
+/// app ships, or (neither given) the signed GitHub release.
+fn binary_source(path: &Option<String>, dir: &Option<String>) -> Result<BinarySource, String> {
+    let read = |p: &std::path::Path| {
+        std::fs::read(p).map_err(|e| format!("Could not read the server program: {e}"))
+    };
+    if let Some(path) = path {
+        return Ok(BinarySource::Local(read(std::path::Path::new(path))?));
+    }
+    if let Some(dir) = dir {
+        let dir = std::path::Path::new(dir);
+        return Ok(BinarySource::Bundled {
+            x64: read(&dir.join("zray-linux-x64"))?,
+            arm64: std::fs::read(dir.join("zray-linux-arm64")).unwrap_or_default(),
+        });
+    }
+    Ok(BinarySource::Release { tag: None })
 }
 
 impl std::fmt::Debug for PairInstallArgs {
@@ -252,6 +275,10 @@ pub struct InstallArgs {
     /// A server program on this device to install instead of the signed
     /// release (unverified; reported as such).
     pub local_binary_path: Option<String>,
+    /// A folder holding `zray-linux-x64` and `zray-linux-arm64` shipped with
+    /// the app; used when no `local_binary_path` is given.
+    #[serde(default)]
+    pub local_binary_dir: Option<String>,
 }
 
 impl std::fmt::Debug for InstallArgs {
@@ -522,12 +549,9 @@ async fn install_pair_job(
         "direct" => {}
         other => return done_err(sink, install::Error::Unavailable(format!("egress {other}"))),
     }
-    let binary = match &args.local_binary_path {
-        Some(path) => match std::fs::read(path) {
-            Ok(bytes) => BinarySource::Local(bytes),
-            Err(e) => return done_err(sink, format!("Could not read the server program: {e}")),
-        },
-        None => BinarySource::Release { tag: None },
+    let binary = match binary_source(&args.local_binary_path, &args.local_binary_dir) {
+        Ok(b) => b,
+        Err(e) => return done_err(sink, e),
     };
     let gateway = match pair_login(&args.gateway) {
         Ok(login) => login,
@@ -763,12 +787,9 @@ async fn install_job(args: InstallArgs, sink: &EventSink) -> EndReason {
         },
         None => None,
     };
-    let binary = match &args.local_binary_path {
-        Some(path) => match std::fs::read(path) {
-            Ok(bytes) => BinarySource::Local(bytes),
-            Err(e) => return done_err(sink, format!("Could not read the server program: {e}")),
-        },
-        None => BinarySource::Release { tag: None },
+    let binary = match binary_source(&args.local_binary_path, &args.local_binary_dir) {
+        Ok(b) => b,
+        Err(e) => return done_err(sink, e),
     };
     let auth = match auth_of(
         &args.password,

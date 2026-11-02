@@ -295,6 +295,7 @@ class MyServerModel(
             .put("reality", form.reality)
             .put("xhttp", form.xhttp)
         if (form.masterdns) request.put("masterdns_domain", form.domain.trim())
+        ServerProgram.dir(context)?.let { request.put("local_binary_dir", it) }
         if (form.useKey) {
             request.put("private_key", form.keyText.trim())
             if (form.passphrase.isNotEmpty()) request.put("key_passphrase", form.passphrase)

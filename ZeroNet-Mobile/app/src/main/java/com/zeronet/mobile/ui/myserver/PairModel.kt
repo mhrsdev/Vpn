@@ -246,6 +246,7 @@ class PairModel(
                 .put("exit", protocolList(form.usa))
                 .put("exit_egress", "direct"))
             .put("keep_access", true)
+        ServerProgram.dir(context)?.let { request.put("local_binary_dir", it) }
         if (form.iran.masterdns) request.put("masterdns_domain", form.iran.domain.trim())
         retainSecrets()
         form.iran.password = ""; form.iran.keyText = ""; form.iran.passphrase = ""

@@ -11,7 +11,12 @@ import java.io.File
  * signed release).
  */
 object ServerProgram {
-    private val files = listOf("zray-linux-x64", "zray-linux-arm64")
+    private val files = listOf(
+        "zray-linux-x64",
+        "zray-linux-arm64",
+        "zray-admin-linux-x64",
+        "zray-admin-linux-arm64",
+    )
 
     fun dir(context: Context): String? {
         val out = File(context.filesDir, "zray-server").apply { mkdirs() }

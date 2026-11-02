@@ -88,11 +88,12 @@ object AdminApi {
                 id = it.getString("id"),
                 name = it.optString("name"),
                 note = it.optString("note").takeIf { s -> s.isNotEmpty() },
-                quotaBytes = it.optLong("quota_bytes").takeIf { _ -> it.has("quota_bytes") },
-                quotaMbps = it.optInt("quota_mbps").takeIf { _ -> it.has("quota_mbps") },
-                maxDevices = it.optInt("max_devices").takeIf { _ -> it.has("max_devices") },
-                expiresAt = it.optLong("expires_at").takeIf { _ -> it.has("expires_at") },
-                enabled = it.optBoolean("enabled", true),
+                quotaBytes = it.optLong("quota_bytes").takeIf { _ -> it.has("quota_bytes") && !it.isNull("quota_bytes") },
+                quotaMbps = it.optInt("quota_mbps").takeIf { _ -> it.has("quota_mbps") && !it.isNull("quota_mbps") },
+                maxDevices = it.optInt("max_devices").takeIf { _ -> it.has("max_devices") && !it.isNull("max_devices") },
+                expiresAt = it.optLong("expires_at").takeIf { _ -> it.has("expires_at") && !it.isNull("expires_at") },
+                // The panel reports `revoked`; an `enabled` flag wins if present.
+                enabled = if (it.has("enabled")) it.optBoolean("enabled", true) else !it.optBoolean("revoked", false),
             )
         }
 
@@ -105,7 +106,7 @@ object AdminApi {
                 identityHash = it.optString("identity_hash"),
                 up = it.optLong("up"),
                 down = it.optLong("down"),
-                enabled = it.optBoolean("enabled", true),
+                enabled = if (it.has("enabled")) it.optBoolean("enabled", true) else !it.optBoolean("revoked", false),
             )
         }
 

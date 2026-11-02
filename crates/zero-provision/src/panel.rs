@@ -262,6 +262,94 @@ pub async fn deploy(
     })
 }
 
+/// `k=v&k=v` from a JSON object, percent-encoded. Non-scalar values are
+/// skipped; an empty object gives an empty string.
+fn query_string(query: &serde_json::Value) -> String {
+    let Some(map) = query.as_object() else {
+        return String::new();
+    };
+    let encode = |text: &str| {
+        let mut out = String::new();
+        for b in text.bytes() {
+            if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
+                out.push(b as char);
+            } else {
+                out.push_str(&format!("%{b:02X}"));
+            }
+        }
+        out
+    };
+    let mut parts = Vec::new();
+    for (key, value) in map {
+        let text = match value {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Number(n) => n.to_string(),
+            serde_json::Value::Bool(b) => b.to_string(),
+            _ => continue,
+        };
+        parts.push(format!("{}={}", encode(key), encode(&text)));
+    }
+    parts.join("&")
+}
+
+/// One call to the panel's loopback API, made on the server over SSH. Every
+/// piece that reaches the command line is checked first: the request body goes
+/// on standard input, so no user text is ever pasted into a command.
+/// Returns the HTTP status and the body.
+pub async fn call(
+    conn: &Connection,
+    token: &str,
+    method: &str,
+    path: &str,
+    query: &serde_json::Value,
+    body: &serde_json::Value,
+) -> Result<(u16, String), String> {
+    if !matches!(method, "GET" | "POST" | "PATCH" | "PUT" | "DELETE") {
+        return Err(format!("method {method:?} is not allowed"));
+    }
+    if token.is_empty() || !token.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("the admin token is not valid".into());
+    }
+    let path_ok = path.starts_with("/api/v1/")
+        && !path.contains("..")
+        && path
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"/_-.:".contains(&b));
+    if !path_ok {
+        return Err(format!("path {path:?} is not allowed"));
+    }
+    let q = query_string(query);
+    let url = if q.is_empty() {
+        format!("http://127.0.0.1:{ADMIN_PORT}{path}")
+    } else {
+        format!("http://127.0.0.1:{ADMIN_PORT}{path}?{q}")
+    };
+    let has_body = method != "GET"
+        && !(body.is_null() || body.as_object().is_some_and(|o| o.is_empty()));
+    let stdin = if has_body { body.to_string() } else { String::new() };
+    let command = format!(
+        "curl -sS -m 25 -X {method} -H 'Authorization: Bearer {token}' \
+         -H 'Content-Type: application/json' {data}-w '\\n%{{http_code}}' '{url}'",
+        data = if has_body { "--data-binary @- " } else { "" },
+    );
+    let out = conn
+        .exec(&command, stdin.as_bytes(), Duration::from_secs(40))
+        .await
+        .map_err(|e| e.to_string())?;
+    if !out.ok() {
+        return Err(format!(
+            "the panel did not answer: {}",
+            out.stderr.trim().lines().next().unwrap_or("no reply")
+        ));
+    }
+    let (body, code) = out
+        .stdout
+        .rsplit_once('\n')
+        .ok_or_else(|| "the panel's answer had no status".to_string())?;
+    let status: u16 = code.trim().parse().map_err(|_| "the panel's status was not a number".to_string())?;
+    Ok((status, body.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,6 +361,13 @@ mod tests {
         assert!(unit.contains("User=zray\n"));
         assert!(unit.contains("ReadWritePaths=/var/lib/zeronet-admin /etc/zray/users"));
         assert!(unit.contains("ExecStart=/usr/local/bin/zray-admin serve"));
+    }
+
+    #[test]
+    fn query_strings_are_percent_encoded() {
+        let q = query_string(&json!({"q": "a b&c", "limit": 5, "skip": null}));
+        assert!(q == "q=a%20b%26c&limit=5" || q == "limit=5&q=a%20b%26c");
+        assert_eq!(query_string(&json!({})), "");
     }
 
     #[test]

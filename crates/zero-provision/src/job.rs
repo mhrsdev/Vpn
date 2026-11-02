@@ -86,6 +86,10 @@ pub enum Request {
         exit: PairHost,
     },
     InstallPair(Box<PairInstallArgs>),
+    /// One call to the operator panel on the pair's gateway (the app's
+    /// management screens): `method`, `path`, `query`, `body`, the panel's
+    /// `token` and the pair's record.
+    Admin(Box<AdminArgs>),
     LinkServers {
         record: Box<PairRecord>,
     },
@@ -167,6 +171,29 @@ impl std::fmt::Debug for PairServerArgs {
         f.debug_struct("PairServerArgs")
             .field("host", &self.host)
             .field("user", &self.user)
+            .finish_non_exhaustive()
+    }
+}
+
+/// One call to the panel, from the app's management screens.
+#[derive(Deserialize)]
+pub struct AdminArgs {
+    pub method: String,
+    pub path: String,
+    #[serde(default)]
+    pub query: serde_json::Value,
+    #[serde(default)]
+    pub body: serde_json::Value,
+    pub token: String,
+    pub pair_record: PairRecord,
+}
+
+impl std::fmt::Debug for AdminArgs {
+    // The token never prints.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AdminArgs")
+            .field("method", &self.method)
+            .field("path", &self.path)
             .finish_non_exhaustive()
     }
 }
@@ -433,6 +460,7 @@ async fn work(request: Request, sink: &EventSink) -> EndReason {
         Request::LinkServers { record } => link_servers_job(*record, sink).await,
         Request::TunnelStatus { record } => tunnel_status_job(*record, sink).await,
         Request::UsagePair { record } => usage_pair_job(*record, sink).await,
+        Request::Admin(args) => admin_job(*args, sink).await,
         Request::RemovePair { record } => remove_pair_job(*record, sink, false).await,
         Request::RollbackPair { record } => remove_pair_job(*record, sink, true).await,
         Request::ConfigsPair { record } => {
@@ -670,6 +698,46 @@ fn pair_login_of(record: &PairRecord, side: Role) -> Result<install::PairLogin, 
         },
         trust: server.host_key.clone(),
     })
+}
+
+/// Run one panel call on the gateway, where the panel lives (it serves the
+/// clients' inbounds), and report the panel's JSON answer as the `done` event.
+async fn admin_job(args: AdminArgs, sink: &EventSink) -> EndReason {
+    let conn = match manage::connect(&args.pair_record.gateway).await {
+        Ok(conn) => conn,
+        Err(e) => return done_err(sink, format!("gateway: {e}")),
+    };
+    let answer = crate::panel::call(
+        &conn,
+        &args.token,
+        &args.method,
+        &args.path,
+        &args.query,
+        &args.body,
+    )
+    .await;
+    conn.close().await;
+    let (status, body) = match answer {
+        Ok(pair) => pair,
+        // The token must never come back inside an error.
+        Err(e) => return done_err(sink, e.replace(&args.token, "•••")),
+    };
+    let parsed: serde_json::Value = serde_json::from_str(&body).unwrap_or(json!({}));
+    if (200..300).contains(&status) {
+        let mut fields = if parsed.is_object() {
+            parsed
+        } else {
+            json!({ "value": parsed })
+        };
+        fields["status"] = json!(status);
+        return done_ok(sink, fields);
+    }
+    let message = parsed
+        .pointer("/error/message")
+        .and_then(|m| m.as_str())
+        .map(str::to_string)
+        .unwrap_or_else(|| format!("the panel answered HTTP {status}"));
+    done_err(sink, message)
 }
 
 async fn link_servers_job(record: PairRecord, sink: &EventSink) -> EndReason {

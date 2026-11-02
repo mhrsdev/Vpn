@@ -199,6 +199,9 @@ const REMOVE: &str = r#"
 for svc in $(echo "$SERVICES" | tr ',' ' '); do systemctl disable --now "$svc" >/dev/null 2>&1 || true; done
 echo "step=services"
 rm -f "$ZRAY_UNIT" "$MASTERDNS_UNIT" "$TUNNEL_CONF" "$TUNNEL_RT_CONF" "$TUNNEL_C_CONF"
+systemctl disable --now zray-admin >/dev/null 2>&1 || true
+rm -f /etc/systemd/system/zray-admin.service /usr/local/bin/zray-admin /etc/zray/usage.salt
+rm -rf /etc/zeronet-admin /var/lib/zeronet-admin
 systemctl daemon-reload >/dev/null 2>&1 || true
 rm -rf "$ZRAY_DIR" "$ZRAY_ETC" /var/lib/zray "$MASTERDNS_DIR" "$MASTERDNS_ETC"
 id "$SVC_USER" >/dev/null 2>&1 && userdel "$SVC_USER" >/dev/null 2>&1 || true
@@ -266,6 +269,9 @@ const WIPE: &str = r#"
 for svc in $(echo "$SERVICES" | tr ',' ' '); do systemctl disable --now "$svc" >/dev/null 2>&1 || true; done
 rm -f "$ZRAY_UNIT" "$MASTERDNS_UNIT" "$TUNNEL_CONF" "$TUNNEL_RT_CONF" "$TUNNEL_C_CONF"
 systemctl daemon-reload >/dev/null 2>&1 || true
+systemctl disable --now zray-admin >/dev/null 2>&1 || true
+rm -f /etc/systemd/system/zray-admin.service /usr/local/bin/zray-admin /etc/zray/usage.salt
+rm -rf /etc/zeronet-admin /var/lib/zeronet-admin
 rm -rf "$ZRAY_DIR" "$ZRAY_ETC" /var/lib/zray "$MASTERDNS_DIR" "$MASTERDNS_ETC"
 id "$SVC_USER" >/dev/null 2>&1 && userdel "$SVC_USER" >/dev/null 2>&1 || true
 getent group "$SVC_USER" >/dev/null 2>&1 && groupdel "$SVC_USER" >/dev/null 2>&1 || true
@@ -556,6 +562,8 @@ mod tests {
         assert!(!ssh::shell_safe("zray masterdns"));
         assert!(REMOVE.contains(r#"tr ',' ' '"#));
         assert!(WIPE.contains(r#"tr ',' ' '"#));
+        // A panel left behind would keep a stale database and users.
+        assert!(WIPE.contains("zray-admin") && REMOVE.contains("zray-admin"));
     }
 
     const LOG: &str = "\

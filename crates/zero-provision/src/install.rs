@@ -3019,3 +3019,80 @@ mod tests {
         assert!(probe.usable().is_ok());
     }
 }
+
+/// What an upgrade of an already installed server gives back.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Upgraded {
+    pub version: String,
+    pub panel: Option<crate::panel::PanelAccess>,
+}
+
+/// Put the app's current server program and the operator panel on a server
+/// that was installed by an older version, without touching its config, keys
+/// or users: the server program is replaced and restarted (clients reconnect
+/// within seconds), then the panel is installed and its token returned.
+///
+/// Only a server that already has a Zray config is upgraded; anything else is
+/// refused so a wrong address cannot be turned into an install.
+pub async fn upgrade_server(
+    record: &ServerRecord,
+    binary: &BinarySource,
+    exit_host: Option<&str>,
+    on: &mut (dyn FnMut(String) + Send),
+) -> Result<Upgraded, Error> {
+    let conn = manage::connect(record).await?;
+    let result = upgrade_on(&conn, record, binary, exit_host, on).await;
+    conn.close().await;
+    result
+}
+
+async fn upgrade_on(
+    conn: &Connection,
+    record: &ServerRecord,
+    binary: &BinarySource,
+    exit_host: Option<&str>,
+    on: &mut (dyn FnMut(String) + Send),
+) -> Result<Upgraded, Error> {
+    on("checking the server".into());
+    let facts = facts_of(conn).await?;
+    if !(facts.zray_installed && facts.zray_config) {
+        return Err(Error::Step {
+            step: Step::Check,
+            detail: "This server has no Zray install to upgrade.".into(),
+        });
+    }
+    let arch = facts.asset_arch().ok_or_else(|| {
+        Error::Unsupported(vec![Problem::UnsupportedCpu(facts.arch.clone())])
+    })?;
+    on("uploading the current server program".into());
+    let fetched = fetch_program(conn, arch, binary, &mut |_| {}).await?;
+    place_program(conn).await?;
+    on("restarting the server program".into());
+    start_service(conn, &[]).await?;
+
+    let mut panel = None;
+    if let Some(program) = binary.panel_program(arch) {
+        on("installing the operator panel".into());
+        let role = if record.role == Role::Gateway { "gateway" } else { "exit" };
+        panel = Some(
+            crate::panel::deploy(
+                conn,
+                program,
+                role,
+                &record.host,
+                record.management_port,
+                exit_host,
+                &record.services,
+            )
+            .await
+            .map_err(Error::Ssh)?,
+        );
+    }
+    let _ = conn
+        .script(&[("WORK", layout::WORK_DIR)], scripts::CLEAN, QUICK)
+        .await;
+    Ok(Upgraded {
+        version: fetched.version,
+        panel,
+    })
+}

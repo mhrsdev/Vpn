@@ -90,6 +90,9 @@ pub enum Request {
     /// management screens): `method`, `path`, `query`, `body`, the panel's
     /// `token` and the pair's record.
     Admin(Box<AdminArgs>),
+    /// Put the app's current server program and the operator panel on a pair
+    /// that an older version installed. Keeps the config, keys and users.
+    UpgradePair(Box<UpgradeArgs>),
     LinkServers {
         record: Box<PairRecord>,
     },
@@ -195,6 +198,20 @@ impl std::fmt::Debug for AdminArgs {
             .field("method", &self.method)
             .field("path", &self.path)
             .finish_non_exhaustive()
+    }
+}
+
+/// An upgrade of an installed pair's gateway.
+#[derive(Deserialize)]
+pub struct UpgradeArgs {
+    pub pair_record: PairRecord,
+    /// The folder with the programs the app ships.
+    pub local_binary_dir: String,
+}
+
+impl std::fmt::Debug for UpgradeArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UpgradeArgs").finish_non_exhaustive()
     }
 }
 
@@ -461,6 +478,7 @@ async fn work(request: Request, sink: &EventSink) -> EndReason {
         Request::TunnelStatus { record } => tunnel_status_job(*record, sink).await,
         Request::UsagePair { record } => usage_pair_job(*record, sink).await,
         Request::Admin(args) => admin_job(*args, sink).await,
+        Request::UpgradePair(args) => upgrade_pair_job(*args, sink).await,
         Request::RemovePair { record } => remove_pair_job(*record, sink, false).await,
         Request::RollbackPair { record } => remove_pair_job(*record, sink, true).await,
         Request::ConfigsPair { record } => {
@@ -738,6 +756,35 @@ async fn admin_job(args: AdminArgs, sink: &EventSink) -> EndReason {
         .map(str::to_string)
         .unwrap_or_else(|| format!("the panel answered HTTP {status}"));
     done_err(sink, message)
+}
+
+/// Upgrade the gateway of an installed pair (the server clients connect to).
+async fn upgrade_pair_job(args: UpgradeArgs, sink: &EventSink) -> EndReason {
+    let binary = match binary_source(&None, &Some(args.local_binary_dir)) {
+        Ok(b) => b,
+        Err(e) => return done_err(sink, e),
+    };
+    let record = &args.pair_record;
+    let mut progress = |text: String| sink.emit(json!({"t": "detail", "text": text}));
+    match install::upgrade_server(
+        &record.gateway,
+        &binary,
+        Some(&record.exit.host),
+        &mut progress,
+    )
+    .await
+    {
+        Ok(up) => done_ok(
+            sink,
+            json!({
+                "version": up.version,
+                "admin_token": up.panel.as_ref().map(|p| p.admin_token.clone()),
+                "panel_password": up.panel.as_ref().map(|p| p.password.clone()),
+                "panel_port": up.panel.as_ref().map(|p| p.port),
+            }),
+        ),
+        Err(e) => done_err(sink, e),
+    }
 }
 
 async fn link_servers_job(record: PairRecord, sink: &EventSink) -> EndReason {

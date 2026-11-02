@@ -196,7 +196,7 @@ fn ports_of(record: &ServerRecord) -> (Vec<u16>, Vec<u16>) {
 }
 
 const REMOVE: &str = r#"
-for svc in $SERVICES; do systemctl disable --now "$svc" >/dev/null 2>&1 || true; done
+for svc in $(echo "$SERVICES" | tr ',' ' '); do systemctl disable --now "$svc" >/dev/null 2>&1 || true; done
 echo "step=services"
 rm -f "$ZRAY_UNIT" "$MASTERDNS_UNIT" "$TUNNEL_CONF" "$TUNNEL_RT_CONF" "$TUNNEL_C_CONF"
 systemctl daemon-reload >/dev/null 2>&1 || true
@@ -258,6 +258,46 @@ fi
 echo "step=access"
 "#;
 
+/// Everything a previous Zray install left that would get in the way of a new
+/// one: services, units, tunnel configs, program and config directories, state
+/// and the service account. It does not touch the firewall, the modem L2TP
+/// setup, or the login's authorized keys, so the app can keep its connection.
+const WIPE: &str = r#"
+for svc in $(echo "$SERVICES" | tr ',' ' '); do systemctl disable --now "$svc" >/dev/null 2>&1 || true; done
+rm -f "$ZRAY_UNIT" "$MASTERDNS_UNIT" "$TUNNEL_CONF" "$TUNNEL_RT_CONF" "$TUNNEL_C_CONF"
+systemctl daemon-reload >/dev/null 2>&1 || true
+rm -rf "$ZRAY_DIR" "$ZRAY_ETC" /var/lib/zray "$MASTERDNS_DIR" "$MASTERDNS_ETC"
+id "$SVC_USER" >/dev/null 2>&1 && userdel "$SVC_USER" >/dev/null 2>&1 || true
+getent group "$SVC_USER" >/dev/null 2>&1 && groupdel "$SVC_USER" >/dev/null 2>&1 || true
+"#;
+
+/// Remove a previous Zray install from the server so a fresh one can go in.
+/// Used by the installers instead of refusing when one is already there.
+pub async fn wipe_existing(conn: &Connection) -> Result<(), ssh::Error> {
+    let env = [
+        ("SERVICES", "zray,masterdns"),
+        ("ZRAY_UNIT", layout::ZRAY_UNIT),
+        ("MASTERDNS_UNIT", layout::MASTERDNS_UNIT),
+        ("TUNNEL_CONF", layout::ZRAY_TUNNEL_CONF),
+        ("TUNNEL_RT_CONF", layout::ZRAY_TUNNEL_RT_CONF),
+        ("TUNNEL_C_CONF", layout::ZRAY_TUNNEL_C_CONF),
+        ("ZRAY_DIR", layout::ZRAY_DIR),
+        ("ZRAY_ETC", layout::ZRAY_ETC),
+        ("MASTERDNS_DIR", layout::MASTERDNS_DIR),
+        ("MASTERDNS_ETC", layout::MASTERDNS_ETC),
+        ("SVC_USER", layout::ZRAY_USER),
+    ];
+    let out = conn.script(&env, WIPE, Duration::from_secs(120)).await?;
+    if out.ok() {
+        Ok(())
+    } else {
+        Err(ssh::Error::Protocol(format!(
+            "removing the previous install stopped part-way: {}",
+            out.stderr.trim()
+        )))
+    }
+}
+
 /// Take everything the installer put on the server away again: the services,
 /// their files and account, the firewall ports it opened, and the app's own SSH
 /// key. Nothing else on the server is touched. The connection must have been
@@ -305,7 +345,7 @@ async fn remove_inner(
         None => ("none".to_string(), "none".to_string()),
     };
     let env = [
-        ("SERVICES", "zray masterdns"),
+        ("SERVICES", "zray,masterdns"),
         ("ZRAY_UNIT", layout::ZRAY_UNIT),
         ("MASTERDNS_UNIT", layout::MASTERDNS_UNIT),
         ("TUNNEL_CONF", layout::ZRAY_TUNNEL_CONF),
@@ -506,6 +546,17 @@ pub async fn tunnel_status(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The cleanup scripts get `SERVICES` as an env value, and `script()`
+    /// refuses anything outside the shell-safe alphabet (a space included),
+    /// which once made every removal and rollback fail before it ran.
+    #[test]
+    fn services_value_is_shell_safe_and_split_by_the_script() {
+        assert!(ssh::shell_safe("zray,masterdns"));
+        assert!(!ssh::shell_safe("zray masterdns"));
+        assert!(REMOVE.contains(r#"tr ',' ' '"#));
+        assert!(WIPE.contains(r#"tr ',' ' '"#));
+    }
 
     const LOG: &str = "\
 1760180000.100 host masterdns-server[1]: 2026/10/11 10:00:00 [MasterDnsVPN Server] [INFO] \u{1f9dd} Session Created, ID: 1, Mode: RAW (Bytes)

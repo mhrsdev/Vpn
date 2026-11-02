@@ -454,12 +454,17 @@ pub async fn install(
     if !problems.is_empty() {
         return Err(Error::Unsupported(problems));
     }
-    if facts.zray_installed && facts.zray_config && zray {
-        return Err(Error::AlreadyInstalled);
-    }
-    if facts.masterdns_installed && request.masterdns.is_some() {
-        return Err(Error::AlreadyInstalled);
-    }
+    // A previous install is replaced, not refused: remove it, then look again
+    // so ports it held count as free.
+    let facts = if (facts.zray_installed && facts.zray_config && zray)
+        || (facts.masterdns_installed && request.masterdns.is_some())
+    {
+        progress.detail("removing the previous install".to_string());
+        manage::wipe_existing(&conn).await?;
+        facts_of(&conn).await?
+    } else {
+        facts
+    };
     let arch = facts.asset_arch().expect("checked by problems()");
 
     // Tools.
@@ -1987,6 +1992,26 @@ async fn run_pair(
     let ex_conn = conns.ex.as_ref().expect("connected above");
     let (gw_facts, ex_facts) = tokio::join!(facts_of(gw_conn), facts_of(ex_conn));
     let (gw_facts, ex_facts) = (gw_facts?, ex_facts?);
+    // A previous install on either side is replaced, not refused. Remove it,
+    // then look again so the ports it held count as free.
+    let (gw_old, ex_old) = (
+        gw_facts.zray_installed && gw_facts.zray_config,
+        ex_facts.zray_installed && ex_facts.zray_config,
+    );
+    let (gw_facts, ex_facts) = if gw_old || ex_old {
+        if gw_old {
+            progress.detail(Server::Gateway, "removing the previous install");
+            manage::wipe_existing(gw_conn).await?;
+        }
+        if ex_old {
+            progress.detail(Server::Exit, "removing the previous install");
+            manage::wipe_existing(ex_conn).await?;
+        }
+        let (g, e) = tokio::join!(facts_of(gw_conn), facts_of(ex_conn));
+        (g?, e?)
+    } else {
+        (gw_facts, ex_facts)
+    };
     progress.detail(
         Server::Gateway,
         format!("{} · {} MB memory", gw_facts.os_name, gw_facts.mem_mb),
@@ -2014,22 +2039,6 @@ async fn run_pair(
         let mut all = gw_problems;
         all.extend(ex_problems);
         return Err(Error::Unsupported(all));
-    }
-    if gw_facts.zray_installed && gw_facts.zray_config {
-        return Err(Error::Step {
-            step: Step::Check,
-            detail: "The gateway already has a Zray server installed. Open it from your \
-                     server list, or remove it first."
-                .into(),
-        });
-    }
-    if ex_facts.zray_installed && ex_facts.zray_config {
-        return Err(Error::Step {
-            step: Step::Check,
-            detail: "The exit already has a Zray server installed. Open it from your server \
-                     list, or remove it first."
-                .into(),
-        });
     }
     let gw_arch = gw_facts.asset_arch().expect("checked by problems()");
     let ex_arch = ex_facts.asset_arch().expect("checked by problems()");

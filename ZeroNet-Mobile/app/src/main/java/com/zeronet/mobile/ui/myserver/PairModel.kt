@@ -112,6 +112,7 @@ class PairModel(
     }
 
     fun close() {
+        forgetSecrets()
         if ((screen as? MsScreen.PairProgress)?.failed != null || screen !is MsScreen.PairProgress) job?.cancel()
         usageJob?.cancel()
         open = false
@@ -125,7 +126,7 @@ class PairModel(
                 if (s.role == MsScreen.PairRole.Exit) MsScreen.PairIdentity(MsScreen.PairRole.Gateway, pendingGwFp, pendingGwAlgo)
                 else MsScreen.PairForm
             MsScreen.Busy -> { job?.cancel(); screen = MsScreen.PairForm }
-            is MsScreen.PairProgress -> if (s.failed != null) screen = MsScreen.PairForm else close()
+            is MsScreen.PairProgress -> if (s.failed != null) { restoreSecrets(); screen = MsScreen.PairForm } else close()
             is MsScreen.PairResult -> openPair(s.pairId)
             is MsScreen.PairServer -> { usageJob?.cancel(); screen = MsScreen.PairList }
             is MsScreen.ConfirmRemovePair -> screen = MsScreen.PairServer(s.pairId)
@@ -134,6 +135,7 @@ class PairModel(
     }
 
     fun startAdd() {
+        forgetSecrets()
         form.iran.password = ""; form.iran.keyText = ""; form.iran.passphrase = ""
         form.usa.password = ""; form.usa.keyText = ""; form.usa.passphrase = ""
         form.error = null
@@ -212,6 +214,26 @@ class PairModel(
         }
     }
 
+    /**
+     * Credentials of a pair install that is running or just failed, kept in
+     * memory only so "Back" after a failure does not make the user retype
+     * them. Never persisted; dropped on success, on close and on a new form.
+     */
+    private var retained: List<Triple<String, String, String>>? = null
+
+    private fun retainSecrets() {
+        retained = listOf(form.iran, form.usa).map { Triple(it.password, it.keyText, it.passphrase) }
+    }
+
+    private fun restoreSecrets() {
+        val r = retained ?: return
+        listOf(form.iran, form.usa).zip(r).forEach { (f, t) ->
+            f.password = t.first; f.keyText = t.second; f.passphrase = t.third
+        }
+    }
+
+    private fun forgetSecrets() { retained = null }
+
     /** Start the pair install. Both passwords leave their forms here. */
     fun installPair() {
         val request = JSONObject()
@@ -225,6 +247,7 @@ class PairModel(
                 .put("exit_egress", "direct"))
             .put("keep_access", true)
         if (form.iran.masterdns) request.put("masterdns_domain", form.iran.domain.trim())
+        retainSecrets()
         form.iran.password = ""; form.iran.keyText = ""; form.iran.passphrase = ""
         form.usa.password = ""; form.usa.keyText = ""; form.usa.passphrase = ""
         var progress = MsScreen.PairProgress(emptyList(), "", null, MsScreen.PairPhase.IranInstall)
@@ -297,6 +320,7 @@ class PairModel(
     }
 
     private suspend fun finishPairInstall(done: JSONObject) {
+        forgetSecrets()
         val record = done.getJSONObject("record")
         // The admin bearer token arrives once, inside the done event (Design C):
         // never logged, encrypted at rest like the SSH keys.

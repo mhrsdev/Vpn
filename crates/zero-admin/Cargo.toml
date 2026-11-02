@@ -1,0 +1,48 @@
+[package]
+name = "zero-admin"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "MIT"
+description = "ZeroNet operator management plane: users, devices, subscriptions, quotas, usage, web panel"
+
+[[bin]]
+name = "zray-admin"
+path = "src/main.rs"
+
+[lib]
+name = "zero_admin"
+path = "src/lib.rs"
+
+[dependencies]
+zero-config = { workspace = true }
+zero-provision = { workspace = true }
+tokio = { workspace = true }
+httparse = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+zeroize = { workspace = true }
+subtle = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+rand = { workspace = true }
+base64 = { workspace = true }
+hex = { workspace = true }
+uuid = { workspace = true }
+percent-encoding = { workspace = true }
+rusqlite = { version = "0.40", features = ["bundled"] }
+qrcode = { version = "0.14", default-features = false }
+argon2 = { version = "0.6" }
+chacha20poly1305 = { version = "0.10" }
+tokio-rustls = { workspace = true }
+rustls = { workspace = true }
+rustls-pki-types = { workspace = true }
+webpki-roots = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+base64 = { workspace = true }
+serde_json = { workspace = true }

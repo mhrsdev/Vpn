@@ -74,7 +74,7 @@ fun PairSheet(model: PairModel, admin: com.zeronet.mobile.ui.admin.AdminModel? =
                 is MsScreen.PairIdentity -> PairIdentityPage(model, screen)
                 is MsScreen.PairProgress -> PairProgressPage(model, screen)
                 is MsScreen.PairResult -> PairResultPage(model, screen)
-                is MsScreen.PairServer -> PairServerPage(model, screen)
+                is MsScreen.PairServer -> PairServerPage(model, screen, admin)
                 is MsScreen.ConfirmRemovePair -> ConfirmRemovePairPage(model, screen)
                 else -> Unit
             }
@@ -299,7 +299,7 @@ private fun PairConfigBlock(model: PairModel, pairId: String) {
 // ------------------------------------------------------------------ server
 
 @Composable
-private fun PairServerPage(model: PairModel, screen: MsScreen.PairServer) {
+private fun PairServerPage(model: PairModel, screen: MsScreen.PairServer, admin: com.zeronet.mobile.ui.admin.AdminModel?) {
     val pair = model.pair(screen.pairId) ?: return
     LaunchedEffect(screen.pairId) {
         model.refreshPairUsage(screen.pairId)

@@ -89,6 +89,7 @@ fun MyServerSheet(model: MyServerModel, pair: PairModel? = null) {
                 is MsScreen.Result -> ResultPage(model, screen)
                 is MsScreen.Server -> ServerPage(model, screen)
                 is MsScreen.ConfirmRemove -> ConfirmPage(model, screen)
+                else -> Unit // Pairing screens are rendered by PairSheet.
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -107,6 +108,7 @@ private fun titleFor(screen: MsScreen): String = stringResource(
         is MsScreen.Result -> R.string.ms_result_title
         is MsScreen.Server -> R.string.ms_server_title
         is MsScreen.ConfirmRemove -> R.string.ms_remove_title
+        else -> R.string.ms_title
     },
 )
 

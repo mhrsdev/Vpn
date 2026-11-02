@@ -173,6 +173,8 @@ class MyServerModel(
             is MsScreen.Result -> openServer(s.id)
             is MsScreen.Server -> if (bigQr) bigQr = false else { usageJob?.cancel(); screen = MsScreen.List }
             is MsScreen.ConfirmRemove -> screen = MsScreen.Server(s.id)
+            // Pairing screens belong to PairModel and are never shown by this model.
+            else -> close()
         }
     }
 
